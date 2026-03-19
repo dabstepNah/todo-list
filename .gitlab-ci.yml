@@ -1,0 +1,41 @@
+# .gitlab-ci.yml
+stages:
+  - test
+  - build
+
+variables:
+  # Это переменная GitLab, которая содержит полный адрес реестра для вашего проекта.
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:latest
+
+# 1. ЭТАП ТЕСТИРОВАНИЯ
+test-api:
+  stage: test
+  image: python:3.10-alpine  # Запускаем контейнер с Python
+  before_script:
+    # Устанавливаем зависимости
+    - apk add --no-cache gcc musl-dev libffi-dev
+    - pip install --no-cache-dir -r requirements.txt
+  script:
+    # Здесь должны быть ваши тесты. Пока просто заглушка:
+    - echo "Запуск тестов... (TODO: добавить реальные тесты)"
+    # Если бы тесты были, они запускались бы, например, так:
+    # - pytest
+  only:
+    - main  # Запускаем только для ветки main
+
+# 2. ЭТАП СБОРКИ ОБРАЗА
+build-image:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind  # Docker-in-Docker для сборки образов
+  before_script:
+    # Логинимся в GitLab Container Registry
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    # Собираем образ с тегом, который включает адрес вашего реестра
+    - docker build -t $IMAGE_TAG .
+    # Отправляем образ в реестр GitLab
+    - docker push $IMAGE_TAG
+  only:
+    - main
