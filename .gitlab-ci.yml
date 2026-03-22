@@ -1,38 +1,17 @@
 stages:
   - test
-  - build
-
-variables:
-  IMAGE_NAME: $CI_REGISTRY_IMAGE:latest
 
 test-api:
   stage: test
   image: python:3.10-alpine
   before_script:
-    - pip install --no-cache-dir -r requirements.txt
+    - pip install --no-cache-dir -r requirements.txt ### установка необходимых зависимостей
   script:
-    - echo "=== Запуск тестов ==="
-    - python -c "
-import app;
-assert app.app is not None;
-print('✅ Приложение загрузилось корректно')
-"
-    - echo "=== Все тесты пройдены ==="
-  only:
-    - master
-
-build-image:
-  stage: build
-  image: docker:latest
-  services:
-    - docker:dind
-  before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-  script:
-    - echo "=== Сборка Docker-образа ==="
-    - docker build -t $IMAGE_NAME .
-    - echo "=== Публикация образа в GitLab Registry ==="
-    - docker push $IMAGE_NAME
-    - echo "✅ Образ успешно загружен"
+    - echo "=== Запускаем API в фоне ==="
+    - python app.py &
+    - sleep 3
+    - echo "=== Проверяем ответ ==="
+    - curl -s http://localhost:5000 | grep -q "Todo API is running"
+    - echo "✅ Тест пройден: API отвечает правильно"
   only:
     - master
